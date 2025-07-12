@@ -105,7 +105,7 @@ sudo chmod 666 /dev/vfio/*
 
 ## Building and Running
 
-### Build the program:
+### Build the programs:
 
 ```bash
 cargo build --release
@@ -133,7 +133,7 @@ sudo ./setup_vfio.py -v 22:00.0
 sudo ./setup_vfio.py 0000:22:00.0
 ```
 
-### Run the program:
+### Run the basic example:
 
 ```bash
 # Run with appropriate permissions
@@ -142,6 +142,27 @@ sudo ./target/release/pci_rust_example
 # Or if user permissions are set up correctly
 ./target/release/pci_rust_example
 ```
+
+### Run the benchmark tool:
+
+The project includes a comprehensive benchmark tool that measures read/write performance to BAR0:
+
+```bash
+# Run benchmark for device 22:00.0
+sudo ./target/release/benchmark 22:00.0
+
+# Run benchmark for a different device
+sudo ./target/release/benchmark 01:00.0
+
+# Using full format
+sudo ./target/release/benchmark 0000:22:00.0
+```
+
+The benchmark tool will:
+- Test various block sizes (1 byte to 4KB)
+- Measure read, write, and combined read+write performance
+- Display throughput in MB/s and timing statistics
+- Show performance summary with best configurations
 
 ## Expected Output
 
@@ -191,6 +212,48 @@ Updated contents:
 Program completed successfully!
 ```
 
+## Benchmark Tool Output
+
+The benchmark tool provides comprehensive performance analysis:
+
+```
+VFIO BAR0 Benchmark Tool
+========================
+
+Initializing VFIO benchmark for device 22:00.0...
+Successfully opened device 22:00.0 (BAR0 size: 65536 bytes)
+
+=== VFIO BAR0 Performance Benchmark ===
+Target region: First 16KiB of BAR0
+Device: Connected via VFIO
+
+Testing 1-byte blocks:
+  Running 10000 read operations with 1-byte blocks...
+  Running 10000 write operations with 1-byte blocks...
+  Running 5000 read+write operations with 1-byte blocks...
+
+[... similar output for other block sizes ...]
+
+=== BENCHMARK RESULTS ===
+OP    | Block Size | Ops    | Throughput |  Avg Time |  Min Time |  Max Time
+------|------------|--------|------------|-----------|-----------|----------
+READ  |      1 bytes |  10000 |     2.34 MB/s |     0.42 ms |     0.38 ms |     1.23 ms
+WRITE |      1 bytes |  10000 |     1.89 MB/s |     0.53 ms |     0.45 ms |     1.87 ms
+R+W   |      1 bytes |   5000 |     1.12 MB/s |     0.89 ms |     0.78 ms |     2.34 ms
+[... results for other block sizes ...]
+
+=== PERFORMANCE SUMMARY ===
+Best READ performance:  15.23 MB/s with 1024-byte blocks
+Best WRITE performance: 12.87 MB/s with 512-byte blocks
+Best R+W performance:   8.45 MB/s with 256-byte blocks
+
+Average READ throughput:  8.45 MB/s
+Average WRITE throughput: 7.12 MB/s
+Average R+W throughput:   4.78 MB/s
+
+Benchmark completed successfully!
+```
+
 ## Important Notes
 
 - **Hardware Dependency**: This program is designed for a specific PCIe device at bus address `22:00.0`. Modify the device path if your device is at a different address.
@@ -225,4 +288,4 @@ Program completed successfully!
 
 ## License
 
-This example is provided as-is for educational purposes. Use responsibly and ensure you have proper permissions to access the hardware device. 
+This example is provided as-is for educational purposes. Use responsibly and ensure you have proper permissions to access the hardware device.

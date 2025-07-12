@@ -2,6 +2,19 @@
 name = "pci_rust_example"
 version = "0.1.0"
 edition = "2021"
+description = "Safe PCI device access using VFIO with Rust - includes basic example and performance benchmark tools"
+authors = ["AI Generated"]
+license = "MIT"
+
+# Main binary - basic PCI device access example
+[[bin]]
+name = "pci_rust_example"
+path = "src/main.rs"
+
+# Benchmark binary - performance testing tool
+[[bin]]
+name = "benchmark"
+path = "src/bin/benchmark.rs"
 
 [dependencies]
 pci-driver = { version = "0.1", features = ["vfio"] }
