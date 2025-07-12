@@ -1,0 +1,94 @@
+# Vivado Project .gitignore
+# Based on AMD's revision control guidelines
+
+# Vivado generated files and directories
+*.jou
+*.log
+*.str
+*.debug
+*.ltx
+*.tcl~
+*.backup.*
+*.hw
+*.ip_user_files/
+*.cache/
+*.runs/
+*.sim/
+*.gen/
+*.tmp/
+
+# Synthesis and implementation results
+*.bit
+*.ltx
+*.mmi
+*.prm
+*.dcp
+*.rpt
+*.xml
+*.html
+*.pb
+*.pbtxt
+
+# Vivado project files that should be excluded
+.Xil/
+vivado_*.backup.*
+vivado_*.jou
+vivado_*.log
+vivado_*.str
+vivado.backup.*
+vivado.jou
+vivado.log
+vivado.str
+dfx_runtime.txt
+*.cache
+*.hw
+*.ip_user_files
+*.runs
+*.sim
+*.tmp
+*.gen
+
+# Hardware handoff files
+*.hwh
+*.sysdef
+
+# SDK/Vitis workspace files
+*.sdk/
+*.metadata/
+RemoteSystemsTempFiles/
+.recommenders/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Keep project files but ignore generated content
+# Uncomment the following if you want to track .xpr files
+# but typically these are regenerated from TCL scripts
+*.xpr
+
+# Keep constraint files
+!*.xdc
+
+# Keep source files
+!*.v
+!*.sv
+!*.vhd
+!*.vhdl
+!*.tcl
+!*.bd
+!*.xci
+!*.coe
+!*.mem
