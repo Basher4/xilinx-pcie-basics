@@ -1,14 +1,25 @@
-# PCI VFIO BAR0 Access Example
+# PCI VFIO BAR0 Access Tools
 
-This Rust program demonstrates how to safely access PCI device memory using VFIO (Virtual Function I/O) framework. It specifically accesses BAR0 of PCIe device `22:00.0`, reads and writes data at offsets `0x0000` and `0x4000`.
+This Rust project provides safe PCI device memory access using VFIO (Virtual Function I/O) framework. It includes two binaries:
+
+1. **pci_rust_example** - Basic example demonstrating BAR0 access with hex dump and write verification
+2. **benchmark** - Comprehensive performance testing tool for BAR0 read/write operations
 
 ## Features
 
+### Basic Example (pci_rust_example)
 - Safe access to PCI device memory using the `pci-driver` crate
 - No unsafe code required
 - Hex dump display of memory contents
 - 64-bit value read/write operations
 - Verification of write operations
+
+### Benchmark Tool (benchmark)
+- Performance testing for various block sizes (1 byte to 4KB)
+- Separate read, write, and combined read+write benchmarks
+- Throughput measurements in MB/s with timing statistics
+- Comprehensive performance analysis and summaries
+- Support for any PCI device address
 
 ## Prerequisites
 
@@ -103,12 +114,32 @@ sudo usermod -a -G vfio $USER
 sudo chmod 666 /dev/vfio/*
 ```
 
+## Project Structure
+
+This project is explicitly configured to build two binaries:
+
+```toml
+# Cargo.toml defines two binaries
+[[bin]]
+name = "pci_rust_example"  # Basic example (src/main.rs)
+path = "src/main.rs"
+
+[[bin]]
+name = "benchmark"         # Performance tool (src/bin/benchmark.rs)
+path = "src/bin/benchmark.rs"
+```
+
 ## Building and Running
 
-### Build the programs:
+### Build both programs:
 
 ```bash
+# Build both binaries
 cargo build --release
+
+# Or build specific binary
+cargo build --release --bin pci_rust_example
+cargo build --release --bin benchmark
 ```
 
 ### Set up VFIO for your device:
@@ -286,6 +317,24 @@ Benchmark completed successfully!
 - Linux kernel with VFIO and IOMMU support
 - Rust 1.56 or later
 
+## Project Metadata
+
+This project is configured with the following metadata in `Cargo.toml`:
+
+- **Description**: "Safe PCI device access using VFIO with Rust - includes basic example and performance benchmark tools"
+- **License**: MIT
+- **Authors**: AI Generated
+- **Version**: 0.1.0
+
 ## License
 
-This example is provided as-is for educational purposes. Use responsibly and ensure you have proper permissions to access the hardware device.
+MIT License - This project is provided as-is for educational purposes. Use responsibly and ensure you have proper permissions to access the hardware device.
+
+## Binary Targets
+
+The project explicitly defines two binary targets:
+
+1. **pci_rust_example** (`src/main.rs`) - Basic PCI device access demonstration
+2. **benchmark** (`src/bin/benchmark.rs`) - Performance benchmark tool
+
+Both can be built individually using `cargo build --bin <name>` or together using `cargo build --bins`.
