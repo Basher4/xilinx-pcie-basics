@@ -95,32 +95,43 @@ The AI structured the solution around these key requirements:
 The AI generated the following files from scratch:
 
 ### Core Binary Applications
-1. **`src/main.rs`** - Main program implementation (125 lines)
-   - Basic PCI device access example
+1. **`src/main.rs`** - Main program implementation (80+ lines)
+   - Basic PCI device access example with command-line argument support
    - Hex dump functionality and write verification
-2. **`src/bin/benchmark.rs`** - Performance benchmark tool (300+ lines)
+   - Uses common library for device handling
+2. **`src/bin/benchmark.rs`** - Performance benchmark tool (270+ lines)
    - Comprehensive read/write performance testing
    - Multiple block size testing (1 byte to 4KB)
    - Statistical analysis and throughput measurements
+   - Uses common library for device handling
+
+### Common Library
+3. **`src/lib.rs`** - Library root module (simple module declaration)
+   - Exposes the device module for public use
+4. **`src/device.rs`** - Shared PCI device operations (100+ lines)
+   - Common argument parsing and validation
+   - Device opening and BAR validation utilities
+   - Hex dump formatting functionality
+   - Eliminates code duplication between binaries
 
 ### Project Configuration
-3. **`Cargo.toml`** - Project configuration with explicit binary definitions
+5. **`Cargo.toml`** - Project configuration with explicit binary definitions
    - Enhanced metadata (description, license, authors)
    - Explicit binary target definitions for both tools
    - Proper dependencies configuration
 
 ### Documentation
-4. **`README.md`** - Comprehensive documentation (320+ lines)
-   - Updated to reflect dual-binary structure
+6. **`README.md`** - Comprehensive documentation (320+ lines)
+   - Updated to reflect dual-binary structure and modular architecture
    - Separate usage instructions for both tools
    - Project metadata and binary target information
-5. **`AI_GENERATED.md`** - This documentation file
+7. **`AI_GENERATED.md`** - This documentation file
 
 ### Support Scripts
-6. **`setup_vfio.py`** - Python VFIO setup script with argument parsing (400+ lines)
+8. **`setup_vfio.py`** - Python VFIO setup script with argument parsing (400+ lines)
    - Generic device support with command-line interface
    - Professional logging and error handling
-7. **`.gitignore`** - Standard Rust project ignore patterns
+9. **`.gitignore`** - Standard Rust project ignore patterns
 
 ## Project Evolution
 
@@ -139,6 +150,26 @@ The AI generated the following files from scratch:
 - Updated documentation to reflect dual-binary structure
 - Code cleanup to eliminate warnings and trailing spaces
 
+### Phase 4: Generalization and Consistency
+- Updated `main.rs` to accept any SBDF address as command-line argument
+- Added consistent argument parsing and validation across both binaries
+- Enhanced error handling and usage information
+- Achieved feature parity between both tools for device address support
+
+### Phase 5: Code Refactoring and Modularization
+- Created common library (`src/lib.rs`) with shared utilities
+- Extracted duplicate argument parsing, device opening, and validation logic
+- Implemented reusable hex dump functionality
+- Reduced code duplication and improved maintainability
+- Both binaries now use common utilities for consistent behavior
+
+### Phase 6: Structural Improvements and Best Practices
+- Removed confusing re-exports of external crate types
+- Moved utilities from inline module to separate `src/device.rs` file
+- Renamed vague "utils" module to descriptive "device" module
+- Improved module structure following Rust best practices
+- Enhanced clarity and reduced cognitive overhead
+
 ## Key AI Capabilities Demonstrated
 
 - **Domain Knowledge**: Understanding of VFIO, PCI, and hardware access concepts
@@ -148,6 +179,8 @@ The AI generated the following files from scratch:
 - **Best Practices**: Implementation of safe, robust code without unsafe blocks
 - **Project Architecture**: Ability to extend projects with additional binaries and proper configuration
 - **Performance Analysis**: Implementation of comprehensive benchmarking tools with statistical analysis
+- **Code Refactoring**: Systematic extraction of common functionality into reusable modules
+- **Library Design**: Creation of well-structured utility libraries with clear interfaces
 
 ## Technical Accuracy
 
@@ -162,6 +195,8 @@ The AI successfully:
 - ✅ Configured proper Cargo.toml with explicit binary definitions
 - ✅ Created clean, warning-free code with proper formatting
 - ✅ Established scalable project architecture for multiple binaries
+- ✅ Implemented modular design with shared utility library
+- ✅ Eliminated code duplication through systematic refactoring
 
 ## Conclusion
 

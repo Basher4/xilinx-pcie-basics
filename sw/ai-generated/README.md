@@ -116,7 +116,7 @@ sudo chmod 666 /dev/vfio/*
 
 ## Project Structure
 
-This project is explicitly configured to build two binaries:
+This project is explicitly configured to build two binaries with shared common functionality:
 
 ```toml
 # Cargo.toml defines two binaries
@@ -128,6 +128,20 @@ path = "src/main.rs"
 name = "benchmark"         # Performance tool (src/bin/benchmark.rs)
 path = "src/bin/benchmark.rs"
 ```
+
+### Code Architecture
+
+The project uses a modular architecture with shared functionality:
+
+- **`src/lib.rs`** - Library root that exposes the device module
+- **`src/device.rs`** - Common PCI device operations module
+  - `device::parse_device_args()` - Command-line argument parsing and validation
+  - `device::open_device()` - Device opening with error handling and validation
+  - `device::print_hex_dump()` - Hex dump formatting utility
+  - `device::validate_bar_size()` - BAR size validation
+  - `device::bar_supports_write()` - Write permission checking
+- **`src/main.rs`** - Basic PCI access example (uses device module)
+- **`src/bin/benchmark.rs`** - Performance benchmark tool (uses device module)
 
 ## Building and Running
 
@@ -167,11 +181,17 @@ sudo ./setup_vfio.py 0000:22:00.0
 ### Run the basic example:
 
 ```bash
-# Run with appropriate permissions
-sudo ./target/release/pci_rust_example
+# Run with appropriate permissions for device 22:00.0
+sudo ./target/release/pci_rust_example 22:00.0
+
+# Run for a different device
+sudo ./target/release/pci_rust_example 01:00.0
+
+# Using full format
+sudo ./target/release/pci_rust_example 0000:22:00.0
 
 # Or if user permissions are set up correctly
-./target/release/pci_rust_example
+./target/release/pci_rust_example 22:00.0
 ```
 
 ### Run the benchmark tool:
@@ -199,7 +219,7 @@ The benchmark tool will:
 
 The program will:
 
-1. Open the PCIe device at `22:00.0`
+1. Open the specified PCIe device (e.g., `22:00.0`)
 2. Access BAR0 and display its size and permissions
 3. For offset `0x0000`:
    - Display the first 64 bytes in hex dump format
@@ -208,11 +228,11 @@ The program will:
    - Verify the write operation
 4. Repeat the same process for offset `0x4000`
 
-Example output:
+Example output for `sudo ./target/release/pci_rust_example 22:00.0`:
 ```
 PCI VFIO BAR0 Access Example
 ============================
-Opening device: /sys/bus/pci/devices/0000:22:00.0
+Opening device: 22:00.0 (/sys/bus/pci/devices/0000:22:00.0)
 Device opened successfully
 BAR0 size: 65536 bytes
 BAR0 permissions: ReadWrite
@@ -287,11 +307,11 @@ Benchmark completed successfully!
 
 ## Important Notes
 
-- **Hardware Dependency**: This program is designed for a specific PCIe device at bus address `22:00.0`. Modify the device path if your device is at a different address.
+- **Generic Device Support**: Both tools now accept any PCI device address as a command-line argument. Use the format `BB:DD.F` (e.g., `22:00.0`) or `SSSS:BB:DD.F` (e.g., `0000:22:00.0`).
 
-- **BAR0 Size**: The program assumes BAR0 is large enough to accommodate reads/writes at offset `0x4000`. If your device has a smaller BAR0, the program will report an error.
+- **BAR0 Size**: The basic example assumes BAR0 is large enough to accommodate reads/writes at offset `0x4000`. If your device has a smaller BAR0, the program will report an error. The benchmark tool tests the first 16KiB of BAR0.
 
-- **Write Permissions**: Some devices may have read-only BARs. The program will detect this and skip write operations.
+- **Write Permissions**: Some devices may have read-only BARs. Both programs will detect this and skip write operations.
 
 - **VFIO Setup**: Proper VFIO setup is crucial. The device must be unbound from its native driver and bound to the VFIO driver.
 

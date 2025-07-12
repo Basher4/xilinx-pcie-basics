@@ -1,3 +1,4 @@
+use pci_rust_example::device;
 use pci_driver::backends::vfio::VfioPciDevice;
 use pci_driver::device::PciDevice;
 use pci_driver::regions::PciRegion;
@@ -61,22 +62,13 @@ impl VfioBenchmark {
     fn new(device_addr: &str) -> Result<Self, Box<dyn Error>> {
         println!("Initializing VFIO benchmark for device {}...", device_addr);
 
-        // Format device path from address
-        let device_path = if device_addr.contains("0000:") {
-            format!("/sys/bus/pci/devices/{}", device_addr)
-        } else {
-            format!("/sys/bus/pci/devices/0000:{}", device_addr)
-        };
+        // Open device using common utility
+        let device = device::open_device(device_addr)?;
 
-        let device = VfioPciDevice::open(&device_path)?;
+        // Validate that BAR0 is large enough for benchmark requirements
+        device::validate_bar_size(&device, 16 * 1024)?;
 
-        // Validate that we can access BAR0
-        let bar0 = device.bar(0).ok_or("Device does not have BAR0")?;
-        if bar0.len() < 16 * 1024 {
-            return Err(format!("BAR0 size ({} bytes) is less than required 16KiB", bar0.len()).into());
-        }
-
-        println!("Successfully opened device {} (BAR0 size: {} bytes)", device_addr, bar0.len());
+        println!("Device successfully validated for benchmark");
 
         Ok(VfioBenchmark {
             device,
@@ -270,30 +262,15 @@ impl VfioBenchmark {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = std::env::args().collect();
-
-    if args.len() != 2 {
-        eprintln!("Usage: {} <pci_device_address>", args[0]);
-        eprintln!("Example: {} 22:00.0", args[0]);
-        eprintln!("         {} 0000:22:00.0", args[0]);
-        std::process::exit(1);
-    }
-
-    let device_addr = &args[1];
-
-    // Validate device address format
-    if !device_addr.contains(':') || !device_addr.contains('.') {
-        eprintln!("Error: Invalid PCI device address format");
-        eprintln!("Expected format: BB:DD.F or SSSS:BB:DD.F");
-        std::process::exit(1);
-    }
+    // Parse command-line arguments using common utility
+    let device_addr = device::parse_device_args()?;
 
     println!("VFIO BAR0 Benchmark Tool");
     println!("========================");
     println!();
 
     // Initialize benchmark
-    let benchmark = VfioBenchmark::new(device_addr)?;
+    let benchmark = VfioBenchmark::new(&device_addr)?;
 
     // Run comprehensive benchmark
     benchmark.run_comprehensive_benchmark()?;

@@ -1,25 +1,20 @@
-use pci_driver::backends::vfio::VfioPciDevice;
+use pci_rust_example::device;
 use pci_driver::device::PciDevice;
 use pci_driver::regions::PciRegion;
 use std::error::Error;
-use std::fmt::Write;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // Parse command-line arguments
+    let device_addr = device::parse_device_args()?;
+
     println!("PCI VFIO BAR0 Access Example");
     println!("============================");
 
-    // Open the PCIe device 22:00.0
-    // Note: This requires the device to be bound to VFIO driver
-    let device_path = "/sys/bus/pci/devices/0000:22:00.0";
-    println!("Opening device: {}", device_path);
-
-    let device = VfioPciDevice::open(device_path)?;
-    println!("Device opened successfully");
+    // Open device using common utility
+    let device = device::open_device(&device_addr)?;
 
     // Get BAR0
     let bar0 = device.bar(0).ok_or("Device does not have BAR0")?;
-    println!("BAR0 size: {} bytes", bar0.len());
-    println!("BAR0 permissions: {:?}", bar0.permissions());
 
     // Process offset 0
     println!("\n--- Processing offset 0x0000 ---");
@@ -48,7 +43,7 @@ fn process_offset(bar0: &impl PciRegion, offset: u64) -> Result<(), Box<dyn Erro
     }
 
     println!("Initial contents:");
-    print_hex_dump(&initial_data, offset);
+    device::print_hex_dump(&initial_data, offset);
 
     // Write a 64-bit value (0x1234567890ABCDEF) to offset 0
     let test_value: u64 = 0x1234567890ABCDEF;
@@ -77,7 +72,7 @@ fn process_offset(bar0: &impl PciRegion, offset: u64) -> Result<(), Box<dyn Erro
     }
 
     println!("Updated contents:");
-    print_hex_dump(&updated_data, offset);
+    device::print_hex_dump(&updated_data, offset);
 
     // Compare the first 8 bytes to see if our write took effect
     let low_word = bar0.read_le_u32(offset)? as u64;
@@ -97,36 +92,4 @@ fn process_offset(bar0: &impl PciRegion, offset: u64) -> Result<(), Box<dyn Erro
     Ok(())
 }
 
-fn print_hex_dump(data: &[u8], base_offset: u64) {
-    for (i, chunk) in data.chunks(16).enumerate() {
-        let mut hex_part = String::new();
-        let mut ascii_part = String::new();
 
-        // Print offset
-        print!("{:08x}: ", base_offset + (i * 16) as u64);
-
-        // Print hex bytes
-        for (j, &byte) in chunk.iter().enumerate() {
-            if j == 8 {
-                hex_part.push(' '); // Extra space after 8 bytes
-            }
-            write!(&mut hex_part, "{:02x} ", byte).unwrap();
-        }
-
-        // Pad hex part if needed
-        while hex_part.len() < 50 {
-            hex_part.push(' ');
-        }
-
-        // Print ASCII representation
-        for &byte in chunk {
-            if byte >= 32 && byte <= 126 {
-                ascii_part.push(byte as char);
-            } else {
-                ascii_part.push('.');
-            }
-        }
-
-        println!("{} |{}|", hex_part, ascii_part);
-    }
-}
