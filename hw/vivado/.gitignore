@@ -77,7 +77,7 @@ Thumbs.db
 # Keep project files but ignore generated content
 # Uncomment the following if you want to track .xpr files
 # but typically these are regenerated from TCL scripts
-*.xpr
+#*.xpr
 
 # Keep constraint files
 !*.xdc
