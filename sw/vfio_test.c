@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <time.h>
 #include <unistd.h>
 #include <linux/vfio.h>
 
@@ -24,10 +25,16 @@
             fprintf(stderr, "%s:%d: %s (%s)\n",                     \
                     __FILE__, __LINE__, message, strerror(errno));  \
             status = errno;                                         \
-            goto label;                                             \ 
+            goto label;                                             \
         }                                                           \
     }                                                               \
     while (0)
+
+uint64_t get_time_ns() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
+}
 
 void print_hex_bytes(const char *label, void *ptr, size_t count)
 {
@@ -62,8 +69,8 @@ int main()
     void *mapped_mem;
 
     // Open VFIO container
-    int container_fd = open(VFIO_CONTAINER_PATH, O_RDWR);
-    PASSERT(container_fd == -1, "Error opening VFIO container", err_exit);
+    container_fd = open(VFIO_CONTAINER_PATH, O_RDWR);
+    PASSERT(container_fd > 0, "Error opening VFIO container", err_exit);
 
     // Check VFIO API version
     PASSERT(ioctl(container_fd, VFIO_GET_API_VERSION) == VFIO_API_VERSION,
@@ -88,7 +95,7 @@ int main()
             "Error setting container for group", err_group);
 
     // Enable IOMMU model
-    PASSERT(ioctl(group_fd, VFIO_GROUP_SET_IOMMU, VFIO_TYPE1_IOMMU) == 0,
+    PASSERT(ioctl(container_fd, VFIO_SET_IOMMU, VFIO_TYPE1_IOMMU) == 0,
             "Error setting IOMMU for group", err_group);
 
     // Get device file descriptor
@@ -119,6 +126,36 @@ int main()
 
     printf("Successfully mapped PCI device 22:00.0 via VFIO\n");
     printf("Mapped size: 0x%x bytes\n\n", MMAP_SIZE);
+
+    uint8_t buffer[4096];
+    uint64_t start_time = get_time_ns();
+    for (int i = 0; i < 1024; i++) {
+        memcpy(buffer, mapped_mem, 4096);
+    }
+    uint64_t end_time = get_time_ns();
+
+    printf("Benchmark\n");
+    printf("--------------------------------\n");
+    printf("H2D: Time to read 4MiB: %.3f ms\n", (end_time - start_time) / 1000000.0);
+
+    float time_to_copy_s = (end_time - start_time) / 1000000000.0;
+    printf("H2D read bandwidth: %.3f MiB/s\n", 4.0 / time_to_copy_s);
+    printf("--------------------------------\n\n");
+
+    for (int i = 0; i < 4096; i++) {
+        buffer[i] = i % 256;
+    }
+
+    start_time = get_time_ns();
+    for (int i = 0; i < 4; i++) {
+        memcpy(mapped_mem, buffer, 4096);
+    }
+    end_time = get_time_ns();
+    printf("H2D: Time to write 4kiB: %.3f ms\n", (end_time - start_time) / 1000000.0);
+
+    time_to_copy_s = (end_time - start_time) / 1000000000.0;
+    printf("H2D write bandwidth: %.3f MiB/s\n", 4.0 * 4 / 1024.0 / time_to_copy_s);
+    printf("--------------------------------\n\n");
 
     // Print first 64 bytes at offset 0
     print_hex_bytes("First 64 bytes at offset 0", mapped_mem, BYTES_TO_PRINT);
