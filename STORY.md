@@ -249,17 +249,99 @@ More info on VFIO and how it works can be found at [docs.kernel.org](https://doc
 
 Using VFIO is surprisingly simple.
 
+### 0. Setup the device
+
+Steps to bind the VFIO driver to a device are outlined in the kernel docs. To simplify my life, I let AI generate
+a script that does this for me.
+
+Either follow the instructions at [docs.kernel.org](https://docs.kernel.org/driver-api/vfio.html) or you can run
+
+```bash
+$ sudo python3 ./sw/ai-generated/setup_vfio.py 22:00.0
+... lots of debug output ...
+
+[INFO] VFIO setup completed successfully!
+
+[INFO] Device Information:
+==================================================
+22:00.0 Serial controller: Xilinx Corporation Device 9031 (prog-if 01 [16450])
+        Subsystem: Xilinx Corporation Device 0007
+        Flags: fast devsel, IRQ 16, IOMMU group 16
+        Memory at b0000000 (32-bit, non-prefetchable) [size=128K]
+        Capabilities: [40] Power Management version 3
+        Capabilities: [48] MSI: Enable- Count=1/1 Maskable- 64bit+
+        Capabilities: [70] Express Endpoint, MSI 00
+        Capabilities: [100] Advanced Error Reporting
+        Capabilities: [1c0] Secondary PCI Express
+        Kernel driver in use: vfio-pci
+
+[INFO] VFIO Status:
+==============================
+Device Path: /sys/bus/pci/devices/0000:22:00.0
+Driver: vfio-pci
+IOMMU Group: 16
+Vendor:Device ID: 10ee 9031
+
+[INFO] Device is now ready for VFIO access!
+```
+
+
 ### 1. Create a container
 
-Think of a container as a set of devices that will 
+Think of a container as the ownership domain for a set of devices that will share the same I/O address space, managed by
+the IOMMU. It's the fundamental unit of isolation in VFIO. When you create a container by opening `/dev/vfio/vfio`,
+you're essentially asking the kernel to create a new, empty, and isolated memory "sandbox".
 
 ```c
 int container_fd = open("/dev/vfio/vfio", O_RDWR);
 ```
 
-## AI take the wheel
+### 2. Open the group
 
-- Cursor trial through my employer
+A group is a set of devices which is isolatable from all other devices in the system. Groups are therefore the unit of
+ownership used by VFIO. On modern platforms, especially servers, each device in usually in its own IOMMU group.
+
+You can figure out the IOMMU group of a PCI device either through lspci or via sysfs (the `iommu_group` file).
+
+In my case the setup script prints that the FPGA is in IOMMU group 16. Opening the group is again one line of code.
+
+```c
+int group_fd = open("/dev/vfio/16", O_RDWR);
+```
+
+### 3. Set container for the group and enable IOMMU
+
+```c
+ioctl(group_fd, VFIO_GROUP_SET_CONTAINER, &container_fd);
+ioctl(group_fd, VFIO_GROUP_SET_IOMMU, VFIO_TYPE1_IOMMU);
+```
+
+### 4. Get device file descriptor
+
+```c
+int device_fd = ioctl(group_fd, VFIO_GROUP_GET_DEVICE_FD, PCI_DEVICE_NAME);
+```
+
+### 5. mmap BAR0
+
+```c
+// Get device info.
+struct vfio_device_info device_info = {.argsz = sizeof(device_info)};
+ioctl(device_fd, VFIO_DEVICE_GET_INFO, &device_info);
+
+// Get info about BAR0.
+struct vfio_region_info bar0_info = {
+        .index = 0,
+        .argsz = sizeof(bar0_info)
+};
+ioctl(device_fd, VFIO_DEVICE_GET_REGION_INFO, &bar0_info);
+
+// Map BAR0.
+mapped_mem = mmap(NULL, MMAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, device_fd, bar0_info.offset);
+```
+
+## Benchmarks - AI take the wheel
+
+
 
 ## Why so slow?
-
