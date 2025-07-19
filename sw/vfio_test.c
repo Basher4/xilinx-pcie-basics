@@ -151,7 +151,7 @@ int main()
         memcpy(mapped_mem, buffer, 4096);
     }
     end_time = get_time_ns();
-    printf("H2D: Time to write 4kiB: %.3f ms\n", (end_time - start_time) / 1000000.0);
+    printf("H2D: Time to write 16kiB: %.3f ms\n", (end_time - start_time) / 1000000.0);
 
     time_to_copy_s = (end_time - start_time) / 1000000000.0;
     printf("H2D write bandwidth: %.3f MiB/s\n", 4.0 * 4 / 1024.0 / time_to_copy_s);
