@@ -1,0 +1,7 @@
+[package]
+name = "vfio-benchmark"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pci-driver = { version = "0.1.4", features = ["vfio"] }
