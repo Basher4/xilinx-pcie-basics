@@ -167,7 +167,7 @@ class VFIOSetup:
         """Load required VFIO kernel modules"""
         logging.info("Loading VFIO kernel modules...")
 
-        modules = ["vfio", "vfio_iommu_type1", "vfio-pci"]
+        modules = ["vfio", "vfio_iommu_type1", "vfio_pci"]
 
         for module in modules:
             try:
