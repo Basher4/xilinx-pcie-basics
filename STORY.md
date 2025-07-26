@@ -41,7 +41,7 @@ and an LED to indicate whether we have clock on the AXI bus.
 
 The two BRAMs are wired slightly differently. If I configure the Block Memory Generator as a BRAM Controller, which is
 designed to work with AXI BRAM Controller, I cannot initialize the block ram from a coefficient file. So I want to try
-to wire the AXI BRAM Controller directly to a BRAM, and see if that will work.
+to wire the AXI BRAM Controller directly to a BRAM, and see if that will work[^1].
 
 # Connecting the FPGA to a computer
 
@@ -506,3 +506,5 @@ the benchmark.
 - VFIO provides a really nice interface to interact with a PCIe device.
 - To efficiently use the PCIe bus I need to have a DMA engine on my device.
 - It might be worth using an AI agent.
+
+[^1]: Turns out this works, you just need ot enable per-byte write mode on the BRAM generator.
