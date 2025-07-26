@@ -235,7 +235,7 @@ Solution to the redditor's problem was to add `iomem=relaxed` to the kernel comm
 still couldn't read the contents of BAR0. Another approach is to open `/dev/mem` and interact with the memory at the
 offset of the BAR directly (in my case 0xb0000000) but because I have `CONFIG_DEVMEM` enabled, this didn't work either.
 
-# VFIO
+## VFIO crash course
 
 VFIO (Virtual Function I/O) is a linux kernel framework that allows us to write device drivers in userspace. In this
 project I use it only to read and write to the PCIe BAR, but the most useful features of VFIO are DMA and interrupt
@@ -245,8 +245,6 @@ With DMA remapping I can create buffers in my application and VFIO configures th
 virtual addresses to my buffers. With interrupt remapping we can use eventfds in our application.
 
 More info on VFIO and how it works can be found at [docs.kernel.org](https://docs.kernel.org/driver-api/vfio.html).
-
-## VFIO crash course
 
 Using VFIO is surprisingly simple.
 
@@ -341,7 +339,7 @@ ioctl(device_fd, VFIO_DEVICE_GET_REGION_INFO, &bar0_info);
 mapped_mem = mmap(NULL, MMAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, device_fd, bar0_info.offset);
 ```
 
-## Benchmarking
+# Benchmarking
 
 Let's calculate the limits of what we can expect in terms of bandwidth.
 
@@ -353,7 +351,7 @@ can saturate with one link of PCIe 3.0 but still plenty for this experiment.
 
 Now lets tie everything together and write a simple benchmark to check how fast we can read and write.
 
-### AI take the wheel
+## AI take the wheel
 
 Recently my current employer started a trial of [Cursor](https://cursor.com) editor. I was curious what kind of code it
 would generate if I asked it to create this benchmark. Would it work? Would it do something completely stupid? What if
@@ -380,7 +378,7 @@ The end result was too verbose for my liking, after all we just want to write a 
 measure how long that takes. However, I am confident that with more prompting I could get it to the state where I'd be
 happy with the code.
 
-### Hand written benchmark in Rust
+## Hand written benchmark in Rust
 
 I looked at the code the AI wrote and I decided to write something a lot shorter that gives me exactly the data I want.
 The result is the [vfio-benchmark](./sw/vfio-benchmark/) project. It uses the
@@ -439,7 +437,7 @@ COUNT  : Syscall
 we can see that when we were reading data in 128B chunks, we issued over 130'000 syscalls. For writes it's even worse.
 To write 16MiB into the MMIO space of the device, we issued almost **4.2 million** syscalls. No wonder things are slow.
 
-### Benchmark without syscalls
+## Benchmark without syscalls
 
 What happens when we run this benchmark without issuing a syscall for every IO operation? The rust crate allows us to
 map the BAR into a userspace buffer and access it like a raw pointer. With a slightly modified benchmark we get
@@ -466,7 +464,7 @@ COUNT  : Syscall
 
 At least the syscalls are gone.
 
-### Let's move to C
+## Let's move to C
 
 Now I am very confused. Is the `pci-driver` crate is doing something funky? Is this the fault of rust?
 Let's go back to basics and write the benchmark in C: [vfio_test.c](./sw/vfio_test.c).
