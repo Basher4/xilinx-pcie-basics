@@ -489,13 +489,53 @@ H2D write bandwidth: 69.701 MiB/s
 
 This is a lot better. About twice as fast for reads and 6-7x speedup for writes.
 
-## What's happening on the AXI bus?
+# Why so slow?
 
-Even though the C version is a sizable speedup compared to rust implementation, even that is a far cry from the
-theoretical maximum of 500MB/s we calculated earlier. So what gives? Let's have a look at the AXI bus when we're running
-the benchmark.
+Moving to C resulted in a sizable speedup compared to rust implementation, most likely because the library implements
+something inefficiently. However, even that is a far cry from the theoretical maximum of 500MB/s we calculated earlier.
+So what gives?
 
-[//]: # (TODO: Analysis of the traffic on the AXI bus)
+We have an ILA attached to the AXI bus coming from the PCIe Bridge IP. Let's have a look at what's going on when we're
+running the benchmark.
+
+## Reads
+
+![ILA Capture of READ transactions](./docs/imgs/vivado-read-transaction.png)
+
+At a glance we can see that the bus is woefully underutilised. We are reading 8 bytes every 298 clock cycles. At 125MHz
+clock, that gives us $8B * 125 * 10^6Hz / 298 \approx 3.2 MiB/s$ of read bandwidth. Unsurprisingly, that matches almost
+exactly with the experiment results.
+
+Reads from device memory are non-posted. My understanding is that this actually blocks until the read succeeds. So even
+though the addresses are different, read transactions cannot overlap.
+
+## Writes
+
+![ILA Capture of WRITE transactions](./docs/imgs/vivado-write-transactions.png)
+
+This looks better compared to reads. Time to complete a single write is 25 clock cycles, and we initiate a new write
+every 12 cycles = 96ns. This means we should see roughly 79.5 MiB/s of write bandwidth. Less than what we see, by ~13%.
+
+# Conclusion
+
+It would be cool to see more detailed breakdown from the processor side, but I had issues getting VTune working on my
+machine. Perhaps next time.
+
+Various LLMs suggested to enable prefetching on BAR0. I tried it and I could see `resource0_wc`, but as before, I could
+not mmap it without turning off some protections in the kernel. Since VFIO driver sets the BAR pages as non cached
+([vfio_pci_core.c:1769](https://elixir.bootlin.com/linux/v6.15.8/source/drivers/vfio/pci/vfio_pci_core.c#L1769))
+
+```c
+vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+vma->vm_page_prot = pgprot_decrypted(vma->vm_page_prot);
+```
+
+I would either need to patch VFIO (don't want to do that), or create my own driver. The latter is something I do intend
+to do at some point, but the whole point of using VFIO in the first place was to avoid writing a kernel driver (and
+other headaches associated with it, like module signing or disabling secure boot).
+
+It seems obvious that if I'm after performance, I need to use a DMA engine. Either XDMA, QDMA, or something else. Or...
+I could write my own. That sounds like fun!
 
 # Learning outcomes
 
@@ -503,6 +543,12 @@ the benchmark.
 - If I want to use a stand alone BRAM with AXI BRAM Controller, I need to enable per-byte write enable.
 - VFIO provides a really nice interface to interact with a PCIe device.
 - To efficiently use the PCIe bus I need to have a DMA engine on my device.
-- It might be worth using an AI agent.
+- AI agents are pretty cool for menial tasks (like "create a script to bind a device to vfio-pci") or research when
+  I want something explained..
+
+# Extra resources
+
+- Simon Southwell's [PCIe Primer on LinkedIn](https://www.linkedin.com/pulse/pci-express-primer-1-overview-physical-layer-simon-southwell)
+- FPGA Zealot's [YouTube channel](https://www.youtube.com/@FPGAZealot)
 
 [^1]: Turns out this works, you just need ot enable per-byte write mode on the BRAM generator.
