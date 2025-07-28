@@ -11,6 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <linux/vfio.h>
+#include <immintrin.h>
 
 #define VFIO_GROUP_PATH "/dev/vfio/16"
 #define VFIO_CONTAINER_PATH "/dev/vfio/vfio"
@@ -130,7 +131,17 @@ int main()
     uint8_t buffer[4096];
     uint64_t start_time = get_time_ns();
     for (int i = 0; i < 1024; i++) {
+        // Use AVX2 intrinsics for memcpy (assume buffer and mapped_mem are 32-byte aligned)
+#ifdef __AVX2__
+        __m256i* dst = (__m256i*)buffer;
+        __m256i* src = (__m256i*)mapped_mem;
+        for (int j = 0; j < 4096 / 32; j++) {
+            __m256i val = _mm256_load_si256(&src[j]);
+            _mm256_store_si256(&dst[j], val);
+        }
+#else
         memcpy(buffer, mapped_mem, 4096);
+#endif
     }
     uint64_t end_time = get_time_ns();
 
